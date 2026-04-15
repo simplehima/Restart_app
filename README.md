@@ -26,19 +26,17 @@ bench restart
 
 ## Screenshots
 
-Add screenshots to `docs/screenshots/` and keep these names for automatic rendering:
+### Server Restart Page
 
-- `docs/screenshots/server-restart-page.png`
-- `docs/screenshots/bench-operations.png`
-- `docs/screenshots/global-popup.png`
-
-Example markdown:
-
-```md
 ![Server Restart Page](docs/screenshots/server-restart-page.png)
+
+### Bench Operations
+
 ![Bench Operations](docs/screenshots/bench-operations.png)
+
+### Global Popup
+
 ![Global Popup](docs/screenshots/global-popup.png)
-```
 
 ## Suggested GitHub Topics (Tags)
 

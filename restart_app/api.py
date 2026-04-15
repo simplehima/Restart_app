@@ -35,9 +35,10 @@ def _repo_root():
 
 
 def _run_git(args):
+	repo = str(_repo_root())
 	proc = subprocess.run(
-		["git", *args],
-		cwd=str(_repo_root()),
+		["git", "-c", f"safe.directory={repo}", *args],
+		cwd=repo,
 		capture_output=True,
 		text=True,
 		check=False,
