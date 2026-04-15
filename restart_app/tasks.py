@@ -179,6 +179,7 @@ def process_pending_restart():
 	try:
 		started_at = now_datetime()
 		details = {"plan_mode": plan["mode"], "executed_command": "", "output_log": "", "error_log": ""}
+		sequence_steps_logged = False
 		if plan["mode"] == "sequence":
 			details["executed_command"] = "\n".join(plan["commands"])
 			steps = _run_sequence_commands(plan["commands"])
@@ -193,6 +194,7 @@ def process_pending_restart():
 					"error_log": step["stderr"],
 				}
 				_write_restart_log(doc, step_ok, step["started_at"], step["completed_at"], step_details)
+			sequence_steps_logged = True
 			failed = next((s for s in steps if s["returncode"] != 0), None)
 			if failed:
 				raise RuntimeError(
@@ -211,7 +213,8 @@ def process_pending_restart():
 			doc.save(ignore_permissions=True)
 			frappe.db.commit()
 			completed_at = now_datetime()
-			_write_restart_log(doc, True, started_at, completed_at, details)
+			if not (plan["mode"] == "sequence" and sequence_steps_logged):
+				_write_restart_log(doc, True, started_at, completed_at, details)
 		except Exception:
 			frappe.db.commit()
 	except Exception as exc:
@@ -221,7 +224,8 @@ def process_pending_restart():
 			"plan_mode": plan["mode"],
 			"executed_command": "\n".join(plan["commands"]) if plan["mode"] == "sequence" else plan["command"],
 		}
-		_write_restart_log(doc, False, started_at if "started_at" in locals() else completed_at, completed_at, details, error_text=error_text)
+		if not (plan["mode"] == "sequence" and "sequence_steps_logged" in locals() and sequence_steps_logged):
+			_write_restart_log(doc, False, started_at if "started_at" in locals() else completed_at, completed_at, details, error_text=error_text)
 		doc.status = "Failed"
 		doc.last_error = error_text
 		doc.save(ignore_permissions=True)

@@ -332,11 +332,11 @@ function toParseableDateString(raw) {
 	}
 
 	function pollStatusFallback() {
-		function setDelayedPendingState(scheduleToken) {
+		function setRestartInProgressState(scheduleToken) {
 			const root = ensureRoot();
 			setVisible(root, true);
-			setModalMode(root, false);
-			setMinimizedMode(root, true);
+			setModalMode(root, true);
+			setMinimizedMode(root, false);
 			setUrgentMode(root, false);
 			currentIsoUtc = scheduleToken;
 			targetMs = Date.parse(toParseableDateString(scheduleToken));
@@ -347,17 +347,21 @@ function toParseableDateString(raw) {
 			const countdownEl = root.querySelector(".restart-notifier__countdown");
 			const actions = root.querySelector(".restart-notifier__actions");
 
-			if (titleEl) titleEl.textContent = bi("Restart delayed", "تأخرت إعادة التشغيل");
-			if (metaEl) metaEl.textContent = bi("Waiting for backend", "بانتظار الخلفية");
+			if (titleEl) titleEl.textContent = bi("Restart in progress", "إعادة التشغيل قيد التنفيذ");
+			if (metaEl) metaEl.textContent = bi("Please wait", "يرجى الانتظار");
 			if (messageEl) {
 				messageEl.hidden = false;
 				messageEl.textContent = bi(
-					"Restart command is still running or worker is offline. You can keep working and refresh later.",
-					"أمر إعادة التشغيل ما زال يعمل أو أن العامل غير متصل. يمكنك متابعة العمل وإعادة التحميل لاحقا."
+					"The restart command is still running. Please wait and reload after completion.",
+					"أمر إعادة التشغيل ما زال قيد التنفيذ. يرجى الانتظار ثم إعادة التحميل بعد الاكتمال."
 				);
 			}
 			if (countdownEl) countdownEl.hidden = true;
-			if (actions) actions.hidden = true;
+			if (actions) actions.hidden = false;
+			const ackBtn = root.querySelector(".restart-notifier__ack");
+			const reloadBtn = root.querySelector(".restart-notifier__reload");
+			if (ackBtn) ackBtn.hidden = true;
+			if (reloadBtn) reloadBtn.hidden = false;
 		}
 
 		const handleStatus = (m) => {
@@ -367,7 +371,7 @@ function toParseableDateString(raw) {
 				if (!scheduleToken) return;
 				const parsedToken = Date.parse(toParseableDateString(scheduleToken));
 				if (!Number.isNaN(parsedToken) && parsedToken <= Date.now()) {
-					setDelayedPendingState(scheduleToken);
+					setRestartInProgressState(scheduleToken);
 					return;
 				}
 				const sameSchedule =

@@ -208,8 +208,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 		}
 		const rows = logs.map((row) => {
 			const statusCls = row.status === "Success" ? "ok" : "warn";
-			const commandText = frappe.utils.escape_html(String(row.executed_command || "").slice(0, 120) || "-");
-			const detailText = row.status === "Success" ? (row.output_log || "") : (row.error_log || "");
+			const commandRaw = String(row.executed_command || "").replace(/\s*\n+\s*/g, " ; ");
+			const commandText = frappe.utils.escape_html(commandRaw.slice(0, 160) || "-");
+			const detailRaw = row.status === "Success" ? (row.output_log || "") : (row.error_log || "");
+			const detailText = String(detailRaw || "").replace(/\s*\n+\s*/g, " | ");
 			const detailEsc = frappe.utils.escape_html(String(detailText || "").slice(0, 120) || "-");
 			return `
 				<tr>
