@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-15 12:40:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "scheduled_at",
+  "started_at",
+  "completed_at",
+  "status",
+  "restart_action",
+  "plan_mode",
+  "section_break_commands",
+  "executed_command",
+  "section_break_logs",
+  "output_log",
+  "error_log"
+ ],
+ "fields": [
+  {
+   "fieldname": "scheduled_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Scheduled At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Started At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Completed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Success\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "restart_action",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Restart Action",
+   "read_only": 1
+  },
+  {
+   "fieldname": "plan_mode",
+   "fieldtype": "Data",
+   "label": "Plan Mode",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_commands",
+   "fieldtype": "Section Break",
+   "label": "Command"
+  },
+  {
+   "fieldname": "executed_command",
+   "fieldtype": "Long Text",
+   "label": "Executed Command",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_logs",
+   "fieldtype": "Section Break",
+   "label": "Execution Logs"
+  },
+  {
+   "fieldname": "output_log",
+   "fieldtype": "Long Text",
+   "label": "Output Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_log",
+   "fieldtype": "Long Text",
+   "label": "Error Log",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-04-15 12:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Restart App",
+ "name": "Server Restart Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

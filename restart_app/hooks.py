@@ -5,10 +5,10 @@ app_description = "Schedule server restarts and notify active Desk users in real
 app_email = "support@example.com"
 app_license = "MIT"
 
-app_include_css = "/assets/restart_app/css/restart_notifier.css?v=20260415e"
-app_include_js = "/assets/restart_app/js/restart_notifier.js?v=20260415e"
-web_include_css = "/assets/restart_app/css/restart_notifier.css?v=20260415e"
-web_include_js = "/assets/restart_app/js/restart_notifier.js?v=20260415e"
+app_include_css = "/assets/restart_app/css/restart_notifier.css?v=20260415f"
+app_include_js = "/assets/restart_app/js/restart_notifier.js?v=20260415f"
+web_include_css = "/assets/restart_app/css/restart_notifier.css?v=20260415f"
+web_include_js = "/assets/restart_app/js/restart_notifier.js?v=20260415f"
 
 scheduler_events = {
 	"all": [

@@ -72,6 +72,29 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 					</div>
 					<div class="server-restart-page__git-status">${bi("Update status not checked yet.", "لم يتم فحص حالة التحديث بعد.")}</div>
 				</div>
+				<div class="server-restart-page__logs">
+					<div class="server-restart-page__logs-head">
+						<div class="server-restart-page__logs-title">${bi("Restart Execution Logs", "سجل تنفيذ إعادة التشغيل")}</div>
+						<button class="btn btn-default btn-sm server-restart-page__logs-refresh">${bi("Refresh Logs", "تحديث السجل")}</button>
+					</div>
+					<div class="server-restart-page__logs-table-wrap">
+						<table class="server-restart-page__logs-table">
+							<thead>
+								<tr>
+									<th>${bi("When", "متى")}</th>
+									<th>${bi("Status", "الحالة")}</th>
+									<th>${bi("Action", "الإجراء")}</th>
+									<th>${bi("Mode", "الوضع")}</th>
+									<th>${bi("Command", "الأمر")}</th>
+									<th>${bi("Details", "التفاصيل")}</th>
+								</tr>
+							</thead>
+							<tbody class="server-restart-page__logs-body">
+								<tr><td colspan="6">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
 				<div class="server-restart-page__actions">
 					<button class="btn btn-primary btn-sm server-restart-page__schedule">
 						${bi("Schedule & Notify", "جدولة وإشعار")}
@@ -104,6 +127,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	const $gitRemote = $root.find(".server-restart-page__git-remote");
 	const $gitBranch = $root.find(".server-restart-page__git-branch");
 	const $gitStatus = $root.find(".server-restart-page__git-status");
+	const $logsBody = $root.find(".server-restart-page__logs-body");
 	let countdownTimer = null;
 
 	function stopCountdown() {
@@ -173,6 +197,41 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 						`<strong>${bi("Uncommitted Changes", "تغييرات غير محفوظة")}:</strong> ${dirtyLabel}`,
 					].join(" &nbsp;|&nbsp; ")
 				);
+			},
+		});
+	}
+
+	function renderLogs(logs) {
+		if (!Array.isArray(logs) || !logs.length) {
+			$logsBody.html(`<tr><td colspan="6">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>`);
+			return;
+		}
+		const rows = logs.map((row) => {
+			const statusCls = row.status === "Success" ? "ok" : "warn";
+			const commandText = frappe.utils.escape_html(String(row.executed_command || "").slice(0, 120) || "-");
+			const detailText = row.status === "Success" ? (row.output_log || "") : (row.error_log || "");
+			const detailEsc = frappe.utils.escape_html(String(detailText || "").slice(0, 120) || "-");
+			return `
+				<tr>
+					<td>${frappe.utils.escape_html(row.started_at || row.creation || "-")}</td>
+					<td><span class="server-restart-page__chip server-restart-page__chip--${statusCls}">${frappe.utils.escape_html(row.status || "-")}</span></td>
+					<td>${frappe.utils.escape_html(row.restart_action || "-")}</td>
+					<td>${frappe.utils.escape_html(row.plan_mode || "-")}</td>
+					<td title="${frappe.utils.escape_html(row.executed_command || "")}">${commandText}</td>
+					<td title="${frappe.utils.escape_html(detailText || "")}">${detailEsc}</td>
+				</tr>
+			`;
+		});
+		$logsBody.html(rows.join(""));
+	}
+
+	function refreshLogs() {
+		frappe.call({
+			method: "restart_app.api.get_restart_logs",
+			args: { limit: 20 },
+			callback(r) {
+				if (r.exc || !r.message) return;
+				renderLogs(r.message.logs || []);
 			},
 		});
 	}
@@ -252,6 +311,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				if (r.exc) return;
 				frappe.show_alert({ message: bi("Restart scheduled; users notified.", "تمت جدولة إعادة التشغيل؛ تم إشعار المستخدمين."), indicator: "green" });
 				refreshStatus();
+				refreshLogs();
 			},
 		});
 	});
@@ -265,6 +325,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				if (r.exc) return;
 				frappe.show_alert({ message: bi("Pending restart cleared.", "تمت إزالة إعادة التشغيل المعلقة."), indicator: "orange" });
 				refreshStatus();
+				refreshLogs();
 			},
 		});
 	});
@@ -306,7 +367,9 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 			},
 		});
 	});
+	$root.find(".server-restart-page__logs-refresh").on("click", refreshLogs);
 
 	refreshStatus();
 	refreshGitStatus();
+	refreshLogs();
 };

@@ -371,6 +371,63 @@
 	}
 }
 
+.server-restart-page__logs {
+	margin-top: 14px;
+	padding: 12px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--card-bg, #fff) 95%, #f8fafc);
+	border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+}
+
+.server-restart-page__logs-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.server-restart-page__logs-title {
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.server-restart-page__logs-table-wrap {
+	overflow-x: auto;
+}
+
+.server-restart-page__logs-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12px;
+}
+
+.server-restart-page__logs-table th,
+.server-restart-page__logs-table td {
+	padding: 8px;
+	border-bottom: 1px solid color-mix(in srgb, var(--border-color, rgba(0, 0, 0, 0.12)) 70%, #fff);
+	vertical-align: top;
+	text-align: left;
+}
+
+.server-restart-page__chip {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.server-restart-page__chip--ok {
+	background: #dcfce7;
+	color: #166534;
+}
+
+.server-restart-page__chip--warn {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
 .server-restart-page__actions {
 	margin-top: 16px;
 	display: flex;

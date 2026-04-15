@@ -290,3 +290,28 @@ def push_app_updates(remote="origin", branch="main"):
 	return {"ok": True, "changed": True, "output": out}
 
 
+@frappe.whitelist()
+def get_restart_logs(limit=20):
+	ensure_restart_scheduler_permission()
+	limit = max(1, min(int(limit or 20), 200))
+	rows = frappe.get_all(
+		"Server Restart Log",
+		fields=[
+			"name",
+			"scheduled_at",
+			"started_at",
+			"completed_at",
+			"status",
+			"restart_action",
+			"plan_mode",
+			"executed_command",
+			"output_log",
+			"error_log",
+			"creation",
+		],
+		order_by="creation desc",
+		limit_page_length=limit,
+	)
+	return {"ok": True, "logs": rows}
+
+

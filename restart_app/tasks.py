@@ -85,28 +85,64 @@ def _resolve_restart_plan(doc) -> dict | None:
 
 
 def _run_restart_command(command: str):
-	parts = shlex.split(command, posix=os.name != "nt")
-	if not parts:
+	command = str(command or "").strip()
+	if not command:
 		raise ValueError("empty command")
-	subprocess.Popen(
-		parts,
+	run = subprocess.run(
+		command,
+		shell=True,
+		check=True,
 		stdin=subprocess.DEVNULL,
-		stdout=subprocess.DEVNULL,
-		stderr=subprocess.DEVNULL,
-		close_fds=os.name != "nt",
+		capture_output=True,
+		text=True,
 	)
+	return {"stdout": (run.stdout or "").strip(), "stderr": (run.stderr or "").strip()}
 
 
 def _run_sequence_commands(commands: list[str]):
-	for cmd in commands:
-		subprocess.run(
+	steps = []
+	for idx, cmd in enumerate(commands, start=1):
+		started_at = now_datetime()
+		run = subprocess.run(
 			cmd,
 			shell=True,
-			check=True,
+			check=False,
 			stdin=subprocess.DEVNULL,
-			stdout=subprocess.DEVNULL,
-			stderr=subprocess.DEVNULL,
+			capture_output=True,
+			text=True,
 		)
+		completed_at = now_datetime()
+		step = {
+			"index": idx,
+			"command": cmd,
+			"returncode": int(run.returncode),
+			"stdout": (run.stdout or "").strip(),
+			"stderr": (run.stderr or "").strip(),
+			"started_at": started_at,
+			"completed_at": completed_at,
+		}
+		steps.append(step)
+		if run.returncode != 0:
+			break
+	return steps
+
+
+def _write_restart_log(doc, success: bool, started_at, completed_at, details: dict, error_text: str | None = None):
+	frappe.get_doc(
+		{
+			"doctype": "Server Restart Log",
+			"scheduled_at": doc.scheduled_at,
+			"started_at": started_at,
+			"completed_at": completed_at,
+			"status": "Success" if success else "Failed",
+			"restart_action": getattr(doc, "restart_action", None) or "Restart Command",
+			"plan_mode": details.get("plan_mode"),
+			"executed_command": details.get("executed_command"),
+			"output_log": (details.get("output_log") or "")[:65535],
+			"error_log": (error_text or details.get("error_log") or "")[:65535],
+		}
+	).insert(ignore_permissions=True)
+	frappe.db.commit()
 
 
 def process_pending_restart():
@@ -141,19 +177,52 @@ def process_pending_restart():
 		return
 
 	try:
+		started_at = now_datetime()
+		details = {"plan_mode": plan["mode"], "executed_command": "", "output_log": "", "error_log": ""}
 		if plan["mode"] == "sequence":
-			_run_sequence_commands(plan["commands"])
+			details["executed_command"] = "\n".join(plan["commands"])
+			steps = _run_sequence_commands(plan["commands"])
+			if not steps:
+				raise RuntimeError("No bench operation steps executed.")
+			for step in steps:
+				step_ok = step["returncode"] == 0
+				step_details = {
+					"plan_mode": f"sequence-step-{step['index']}",
+					"executed_command": step["command"],
+					"output_log": step["stdout"],
+					"error_log": step["stderr"],
+				}
+				_write_restart_log(doc, step_ok, step["started_at"], step["completed_at"], step_details)
+			failed = next((s for s in steps if s["returncode"] != 0), None)
+			if failed:
+				raise RuntimeError(
+					f"Step {failed['index']} failed with exit code {failed['returncode']}: {failed['command']}\n{failed['stderr']}"
+				)
+			details["output_log"] = "\n\n".join([s["stdout"] for s in steps if s["stdout"]])
+			details["error_log"] = "\n\n".join([s["stderr"] for s in steps if s["stderr"]])
 		else:
-			_run_restart_command(plan["command"])
+			details["executed_command"] = plan["command"]
+			res = _run_restart_command(plan["command"])
+			details["output_log"] = res.get("stdout") or ""
+			details["error_log"] = res.get("stderr") or ""
 		try:
 			doc.status = "Completed"
 			doc.last_error = None
 			doc.save(ignore_permissions=True)
 			frappe.db.commit()
+			completed_at = now_datetime()
+			_write_restart_log(doc, True, started_at, completed_at, details)
 		except Exception:
 			frappe.db.commit()
 	except Exception as exc:
+		completed_at = now_datetime()
+		error_text = frappe.get_traceback() if frappe.conf.developer_mode else str(exc)
+		details = {
+			"plan_mode": plan["mode"],
+			"executed_command": "\n".join(plan["commands"]) if plan["mode"] == "sequence" else plan["command"],
+		}
+		_write_restart_log(doc, False, started_at if "started_at" in locals() else completed_at, completed_at, details, error_text=error_text)
 		doc.status = "Failed"
-		doc.last_error = frappe.get_traceback() if frappe.conf.developer_mode else str(exc)
+		doc.last_error = error_text
 		doc.save(ignore_permissions=True)
 		frappe.db.commit()
