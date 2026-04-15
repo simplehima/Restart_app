@@ -83,7 +83,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				<div class="server-restart-page__logs">
 					<div class="server-restart-page__logs-head">
 						<div class="server-restart-page__logs-title">${bi("Restart Execution Logs", "سجل تنفيذ إعادة التشغيل")}</div>
-						<button class="btn btn-default btn-sm server-restart-page__logs-refresh">${bi("Refresh Logs", "تحديث السجل")}</button>
+						<div class="server-restart-page__logs-tools">
+							<span class="server-restart-page__logs-meta">-</span>
+							<button class="btn btn-default btn-sm server-restart-page__logs-refresh">${bi("Refresh Logs", "تحديث السجل")}</button>
+						</div>
 					</div>
 					<div class="server-restart-page__logs-table-wrap">
 						<table class="server-restart-page__logs-table">
@@ -102,6 +105,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 								<tr><td colspan="7">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>
 							</tbody>
 						</table>
+					</div>
+					<div class="server-restart-page__logs-pagination">
+						<button class="btn btn-default btn-xs server-restart-page__logs-prev">${bi("Prev", "السابق")}</button>
+						<button class="btn btn-default btn-xs server-restart-page__logs-next">${bi("Next", "التالي")}</button>
 					</div>
 				</div>
 				<div class="server-restart-page__actions">
@@ -137,11 +144,16 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	const $gitBranch = $root.find(".server-restart-page__git-branch");
 	const $gitStatus = $root.find(".server-restart-page__git-status");
 	const $logsBody = $root.find(".server-restart-page__logs-body");
+	const $logsMeta = $root.find(".server-restart-page__logs-meta");
+	const $logsPrev = $root.find(".server-restart-page__logs-prev");
+	const $logsNext = $root.find(".server-restart-page__logs-next");
 	const $progress = $root.find(".server-restart-page__progress");
 	const $progressPct = $root.find(".server-restart-page__progress-pct");
 	const $progressFill = $root.find(".server-restart-page__progress-fill");
 	const $progressMsg = $root.find(".server-restart-page__progress-msg");
 	let countdownTimer = null;
+	const logsLimit = 8;
+	let logsOffset = 0;
 
 	function stopCountdown() {
 		if (countdownTimer) {
@@ -214,7 +226,15 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 		});
 	}
 
-	function renderLogs(logs) {
+	function renderLogs(logs, pageMeta = {}) {
+		const total = Number(pageMeta.total || 0);
+		const offset = Number(pageMeta.offset || 0);
+		const limit = Number(pageMeta.limit || logsLimit);
+		const from = total ? offset + 1 : 0;
+		const to = Math.min(offset + (Array.isArray(logs) ? logs.length : 0), total);
+		$logsMeta.text(`${bi("Showing", "عرض")} ${from}-${to} ${bi("of", "من")} ${total}`);
+		$logsPrev.prop("disabled", offset <= 0);
+		$logsNext.prop("disabled", !(pageMeta.has_more));
 		if (!Array.isArray(logs) || !logs.length) {
 			$logsBody.html(`<tr><td colspan="7">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>`);
 			return;
@@ -253,10 +273,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	function refreshLogs() {
 		frappe.call({
 			method: "restart_app.api.get_restart_logs",
-			args: { limit: 20 },
+			args: { limit: logsLimit, offset: logsOffset },
 			callback(r) {
 				if (r.exc || !r.message) return;
-				renderLogs(r.message.logs || []);
+				renderLogs(r.message.logs || [], r.message || {});
 			},
 		});
 	}
@@ -424,6 +444,14 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 		});
 	});
 	$root.find(".server-restart-page__logs-refresh").on("click", refreshLogs);
+	$logsPrev.on("click", () => {
+		logsOffset = Math.max(0, logsOffset - logsLimit);
+		refreshLogs();
+	});
+	$logsNext.on("click", () => {
+		logsOffset += logsLimit;
+		refreshLogs();
+	});
 
 	refreshStatus();
 	refreshGitStatus();

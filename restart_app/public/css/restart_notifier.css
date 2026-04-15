@@ -471,6 +471,7 @@
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 8px;
+	flex-wrap: wrap;
 }
 
 .server-restart-page__logs-title {
@@ -478,8 +479,23 @@
 	font-weight: 700;
 }
 
+.server-restart-page__logs-tools {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.server-restart-page__logs-meta {
+	font-size: 12px;
+	opacity: 0.75;
+}
+
 .server-restart-page__logs-table-wrap {
 	overflow-x: auto;
+	max-height: 300px;
+	overflow-y: auto;
+	border: 1px solid color-mix(in srgb, var(--border-color, rgba(0, 0, 0, 0.12)) 65%, #fff);
+	border-radius: 8px;
 }
 
 .server-restart-page__logs-table {
@@ -512,6 +528,13 @@
 .server-restart-page__chip--warn {
 	background: #fee2e2;
 	color: #991b1b;
+}
+
+.server-restart-page__logs-pagination {
+	display: flex;
+	justify-content: flex-end;
+	gap: 6px;
+	margin-top: 8px;
 }
 
 .server-restart-page__actions {
