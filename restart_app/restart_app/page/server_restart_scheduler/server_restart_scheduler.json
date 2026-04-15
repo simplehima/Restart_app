@@ -1,0 +1,24 @@
+{
+ "content": null,
+ "creation": "2026-04-14 10:20:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "redirect",
+ "idx": 0,
+ "modified": "2026-04-14 10:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "Restart App",
+ "name": "server-restart-scheduler",
+ "owner": "Administrator",
+ "page_name": "server-restart-scheduler",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Server Restart Scheduler"
+}

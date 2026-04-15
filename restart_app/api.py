@@ -1,0 +1,200 @@
+# Copyright (c) 2026, Restart App and contributors
+# For license information, please see license.txt
+
+from datetime import timedelta
+
+import frappe
+from frappe import _
+
+from frappe.utils.data import get_datetime, now_datetime
+
+from restart_app.utils import scheduled_datetime_to_utc_iso_z
+
+
+def ensure_restart_scheduler_permission():
+	if frappe.session.user == "Administrator":
+		return
+	roles = frappe.get_roles(frappe.session.user)
+	if "System Manager" in roles:
+		return
+	raise frappe.exceptions.PermissionError(_("Not permitted to manage server restart scheduling."))
+
+
+def _scheduler_doc():
+	return frappe.get_single("Server Restart Scheduler")
+
+
+def _max_horizon_days():
+	return int(frappe.conf.get("restart_scheduler_max_days") or 7)
+
+
+def _normalize_scheduled_at(scheduled_at, minutes_from_now):
+	if minutes_from_now is not None and str(minutes_from_now).strip() != "":
+		m = int(minutes_from_now)
+		if m <= 0:
+			frappe.throw(_("Minutes from now must be a positive integer."))
+		return now_datetime() + timedelta(minutes=m)
+
+	if not scheduled_at:
+		frappe.throw(_("Provide scheduled_at or minutes_from_now."))
+
+	return get_datetime(scheduled_at)
+
+
+@frappe.whitelist()
+def schedule_restart(
+	scheduled_at=None,
+	minutes_from_now=None,
+	restart_action=None,
+	restart_command=None,
+	restart_sites_command=None,
+	bench_path=None,
+	bench_site=None,
+	bench_op_clear_cache=None,
+	bench_op_migrate=None,
+	bench_op_build=None,
+	bench_op_restart=None,
+	bench_build_apps=None,
+):
+	ensure_restart_scheduler_permission()
+
+	target = _normalize_scheduled_at(scheduled_at, minutes_from_now)
+	now = now_datetime()
+
+	if target <= now:
+		frappe.throw(_("Scheduled time must be in the future."))
+
+	max_delta = timedelta(days=_max_horizon_days())
+	if target - now > max_delta:
+		frappe.throw(_("Scheduled time is too far in the future."), title=_("Limit exceeded"))
+
+	doc = _scheduler_doc()
+	if restart_action is not None and str(restart_action).strip():
+		doc.restart_action = str(restart_action).strip()
+	if restart_command is not None:
+		doc.restart_command = str(restart_command or "").strip() or None
+	if restart_sites_command is not None:
+		doc.restart_sites_command = str(restart_sites_command or "").strip() or None
+	if bench_path is not None:
+		doc.bench_path = str(bench_path or "").strip() or None
+	if bench_site is not None:
+		doc.bench_site = str(bench_site or "").strip() or None
+	if bench_op_clear_cache is not None:
+		doc.bench_op_clear_cache = int(str(bench_op_clear_cache).strip() in {"1", "true", "True"})
+	if bench_op_migrate is not None:
+		doc.bench_op_migrate = int(str(bench_op_migrate).strip() in {"1", "true", "True"})
+	if bench_op_build is not None:
+		doc.bench_op_build = int(str(bench_op_build).strip() in {"1", "true", "True"})
+	if bench_op_restart is not None:
+		doc.bench_op_restart = int(str(bench_op_restart).strip() in {"1", "true", "True"})
+	if bench_build_apps is not None:
+		doc.bench_build_apps = str(bench_build_apps or "").strip() or None
+	doc.scheduled_at = target
+	doc.status = "Pending"
+	doc.minutes_from_now = None
+	doc.last_error = None
+	doc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	message = {
+		"scheduled_at_utc": scheduled_datetime_to_utc_iso_z(doc.scheduled_at),
+	}
+
+	frappe.publish_realtime(
+		event="server_restart_scheduled",
+		message=message,
+		room="all",
+	)
+
+	return {"ok": True}
+
+
+@frappe.whitelist()
+def cancel_pending_restart():
+	ensure_restart_scheduler_permission()
+	doc = _scheduler_doc()
+	if doc.status != "Pending":
+		return {"ok": True, "changed": False}
+
+	doc.status = "Idle"
+	doc.scheduled_at = None
+	doc.minutes_from_now = None
+	doc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	frappe.publish_realtime(
+		event="server_restart_cancelled",
+		message={},
+		room="all",
+	)
+
+	return {"ok": True, "changed": True}
+
+
+@frappe.whitelist()
+def get_restart_status():
+	if frappe.session.user in ("Guest", "", None):
+		return {
+			"ok": True,
+			"status": "Idle",
+			"scheduled_at": None,
+			"scheduled_at_utc": None,
+			"last_error": "",
+		}
+
+	try:
+		row = frappe.db.get_value(
+			"Server Restart Scheduler",
+			"Server Restart Scheduler",
+			[
+				"status",
+				"scheduled_at",
+				"last_error",
+				"restart_action",
+				"restart_command",
+				"restart_sites_command",
+				"bench_path",
+				"bench_site",
+				"bench_op_clear_cache",
+				"bench_op_migrate",
+				"bench_op_build",
+				"bench_op_restart",
+				"bench_build_apps",
+			],
+			as_dict=True,
+		)
+	except Exception:
+		return {
+			"ok": True,
+			"status": "Idle",
+			"scheduled_at": None,
+			"scheduled_at_utc": None,
+			"last_error": "",
+		}
+
+	if not row:
+		return {
+			"ok": True,
+			"status": "Idle",
+			"scheduled_at": None,
+			"scheduled_at_utc": None,
+			"last_error": "",
+		}
+
+	return {
+		"ok": True,
+		"status": row.status,
+		"scheduled_at": str(row.scheduled_at) if row.scheduled_at else None,
+		"scheduled_at_utc": scheduled_datetime_to_utc_iso_z(row.scheduled_at),
+		"last_error": row.last_error or "",
+		"restart_action": row.restart_action or "Restart Command",
+		"restart_command": row.restart_command or "",
+		"restart_sites_command": row.restart_sites_command or "",
+		"bench_path": row.bench_path or "",
+		"bench_site": row.bench_site or "",
+		"bench_op_clear_cache": int(row.bench_op_clear_cache or 0),
+		"bench_op_migrate": int(row.bench_op_migrate or 0),
+		"bench_op_build": int(row.bench_op_build or 0),
+		"bench_op_restart": int(row.bench_op_restart or 0),
+		"bench_build_apps": row.bench_build_apps or "",
+	}

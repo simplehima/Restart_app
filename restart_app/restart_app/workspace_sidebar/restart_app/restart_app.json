@@ -1,0 +1,42 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"rsHeader\",\"type\":\"header\",\"data\":{\"text\":\"Restart App\",\"col\":12}},{\"id\":\"rsSh1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Server Restart\",\"col\":3}},{\"id\":\"rsSh2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Server Restart Scheduler\",\"col\":3}}]",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "sync",
+ "is_hidden": 0,
+ "label": "Restart App",
+ "links": [],
+ "module": "Restart App",
+ "name": "Restart App",
+ "number_cards": [],
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 500.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "label": "Server Restart",
+   "link_to": "server-restart",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "Form",
+   "label": "Server Restart Scheduler",
+   "link_to": "Server Restart Scheduler",
+   "type": "DocType"
+  }
+ ],
+ "title": "Restart App"
+}

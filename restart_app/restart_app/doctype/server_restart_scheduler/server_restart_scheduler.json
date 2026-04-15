@@ -1,0 +1,173 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-04-06 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_schedule",
+  "scheduled_at",
+  "minutes_from_now",
+  "column_break_1",
+  "status",
+  "section_break_command",
+  "restart_action",
+  "restart_command",
+  "restart_sites_command",
+  "section_break_bench_ops",
+  "bench_path",
+  "bench_site",
+  "column_break_bench_ops_1",
+  "bench_op_clear_cache",
+  "bench_op_migrate",
+  "bench_op_build",
+  "bench_op_restart",
+  "bench_build_apps",
+  "section_break_error",
+  "last_error"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_schedule",
+   "fieldtype": "Section Break",
+   "label": "Schedule"
+  },
+  {
+   "fieldname": "scheduled_at",
+   "fieldtype": "Datetime",
+   "label": "Scheduled At"
+  },
+  {
+   "description": "Optional. Used when clicking Schedule & Notify if you prefer a relative delay.",
+   "fieldname": "minutes_from_now",
+   "fieldtype": "Int",
+   "label": "Minutes From Now"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Idle",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Idle\nPending\nCompleted\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_command",
+   "fieldtype": "Section Break",
+   "label": "Restart command"
+  },
+  {
+   "default": "Restart Command",
+   "description": "Choose what should run when the scheduled restart time is reached.",
+   "fieldname": "restart_action",
+   "fieldtype": "Select",
+   "label": "Restart Action",
+   "options": "Restart Command\nRun restart_sites.py command\nBench Operations (checkboxes)"
+  },
+  {
+   "description": "Override site default. Leave blank to use site_config restart_command or framework default.",
+   "fieldname": "restart_command",
+   "fieldtype": "Small Text",
+   "label": "Restart Command"
+  },
+  {
+   "description": "Command to execute restart_sites.py in non-interactive mode (or via your wrapper script). Used when Restart Action is 'Run restart_sites.py command'.",
+   "fieldname": "restart_sites_command",
+   "fieldtype": "Small Text",
+   "label": "restart_sites.py Command"
+  },
+  {
+   "fieldname": "section_break_bench_ops",
+   "fieldtype": "Section Break",
+   "label": "Bench operations (from restart_sites.py flow)"
+  },
+  {
+   "description": "Bench directory path where commands should run. Leave blank for /home/frappe/frappe-bench.",
+   "fieldname": "bench_path",
+   "fieldtype": "Data",
+   "label": "Bench Path"
+  },
+  {
+   "description": "Target site. Leave blank to use current site.",
+   "fieldname": "bench_site",
+   "fieldtype": "Data",
+   "label": "Bench Site"
+  },
+  {
+   "fieldname": "column_break_bench_ops_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "bench_op_clear_cache",
+   "fieldtype": "Check",
+   "label": "Clear Cache"
+  },
+  {
+   "default": "1",
+   "fieldname": "bench_op_migrate",
+   "fieldtype": "Check",
+   "label": "Migrate"
+  },
+  {
+   "fieldname": "bench_op_build",
+   "fieldtype": "Check",
+   "label": "Build App(s)"
+  },
+  {
+   "default": "1",
+   "fieldname": "bench_op_restart",
+   "fieldtype": "Check",
+   "label": "Restart (Supervisor)"
+  },
+  {
+   "description": "Comma-separated apps to build when Build App(s) is enabled. Example: restart_app,erpnext",
+   "fieldname": "bench_build_apps",
+   "fieldtype": "Data",
+   "label": "Apps To Build"
+  },
+  {
+   "fieldname": "section_break_error",
+   "fieldtype": "Section Break",
+   "label": "Diagnostics"
+  },
+  {
+   "fieldname": "last_error",
+   "fieldtype": "Small Text",
+   "label": "Last Error",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-04-06 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Restart App",
+ "name": "Server Restart Scheduler",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

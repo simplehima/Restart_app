@@ -1,0 +1,1 @@
+recursive-include restart_app *.txt *.json *.js *.css *.py
