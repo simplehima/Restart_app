@@ -18,6 +18,7 @@
   "section_break_bench_ops",
   "bench_path",
   "bench_site",
+  "bench_supervisor_targets",
   "column_break_bench_ops_1",
   "bench_op_clear_cache",
   "bench_op_migrate",
@@ -98,6 +99,12 @@
    "fieldname": "bench_site",
    "fieldtype": "Data",
    "label": "Bench Site"
+  },
+  {
+   "description": "Optional Supervisor targets instead of global restart. Example: frappe-bench-web: frappe-bench-workers:",
+   "fieldname": "bench_supervisor_targets",
+   "fieldtype": "Data",
+   "label": "Supervisor Targets"
   },
   {
    "fieldname": "column_break_bench_ops_1",

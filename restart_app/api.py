@@ -157,6 +157,7 @@ def schedule_restart(
 	restart_sites_command=None,
 	bench_path=None,
 	bench_site=None,
+	bench_supervisor_targets=None,
 	bench_op_clear_cache=None,
 	bench_op_migrate=None,
 	bench_op_build=None,
@@ -186,6 +187,8 @@ def schedule_restart(
 		doc.bench_path = str(bench_path or "").strip() or None
 	if bench_site is not None:
 		doc.bench_site = str(bench_site or "").strip() or None
+	if bench_supervisor_targets is not None:
+		doc.bench_supervisor_targets = str(bench_supervisor_targets or "").strip() or None
 	if bench_op_clear_cache is not None:
 		doc.bench_op_clear_cache = int(str(bench_op_clear_cache).strip() in {"1", "true", "True"})
 	if bench_op_migrate is not None:
@@ -262,6 +265,7 @@ def get_restart_status():
 				"restart_sites_command",
 				"bench_path",
 				"bench_site",
+				"bench_supervisor_targets",
 				"bench_op_clear_cache",
 				"bench_op_migrate",
 				"bench_op_build",
@@ -300,6 +304,7 @@ def get_restart_status():
 		"restart_sites_command": row.restart_sites_command or "",
 		"bench_path": row.bench_path or "",
 		"bench_site": row.bench_site or "",
+		"bench_supervisor_targets": row.bench_supervisor_targets or "",
 		"bench_op_clear_cache": int(row.bench_op_clear_cache or 0),
 		"bench_op_migrate": int(row.bench_op_migrate or 0),
 		"bench_op_build": int(row.bench_op_build or 0),

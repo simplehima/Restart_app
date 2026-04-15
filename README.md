@@ -24,6 +24,21 @@ Restart App is a Frappe app for scheduling controlled server restart windows wit
   - app update tools
   - execution logs table with step labels
 
+## Production Restart Command Notes
+
+If `supervisorctl` is not available in your bench shell (for example inside some Docker images), configure one of these in `site_config.json`:
+
+- `restart_supervisor_command`: default restart command (used when no targets are provided)
+- `restart_supervisor_target_command`: template command for targeted restarts, must include `{targets}`
+
+Example:
+
+```json
+{
+  "restart_supervisor_target_command": "docker exec backend supervisorctl restart {targets}"
+}
+```
+
 ## Installation
 
 From your bench:

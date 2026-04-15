@@ -47,8 +47,22 @@ def _bench_operations_commands(doc) -> list[str]:
 		for app in apps:
 			commands.append(f"{base} && bench build --app {shlex.quote(app)}")
 	if _truthy(getattr(doc, "bench_op_restart", 0)):
-		restart_cmd = str(frappe.conf.get("restart_supervisor_command") or "bench restart").strip()
-		commands.append(f"{base} && {restart_cmd}")
+		targets = str(getattr(doc, "bench_supervisor_targets", "") or "").strip()
+		if targets:
+			template = str(frappe.conf.get("restart_supervisor_target_command") or "").strip()
+			if not template:
+				base_restart_cmd = str(frappe.conf.get("restart_supervisor_command") or "").strip()
+				if "{targets}" in base_restart_cmd:
+					template = base_restart_cmd
+				elif base_restart_cmd and "supervisorctl" in base_restart_cmd and "restart" in base_restart_cmd:
+					template = f"{base_restart_cmd} {{targets}}"
+				else:
+					template = "supervisorctl restart {targets}"
+			restart_cmd = template.format(targets=targets)
+			commands.append(f"{base} && {restart_cmd}")
+		else:
+			restart_cmd = str(frappe.conf.get("restart_supervisor_command") or "bench restart").strip()
+			commands.append(f"{base} && {restart_cmd}")
 
 	return commands
 

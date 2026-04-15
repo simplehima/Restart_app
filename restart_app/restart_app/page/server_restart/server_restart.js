@@ -48,6 +48,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 							<label>${bi("Bench Site", "موقع Bench")}</label>
 							<input type="text" class="form-control server-restart-page__bench-site" placeholder="dev.local">
 						</div>
+						<div class="server-restart-page__field server-restart-page__field--wide">
+							<label>${bi("Supervisor Targets", "أهداف Supervisor")}</label>
+							<input type="text" class="form-control server-restart-page__bench-supervisor-targets" placeholder="frappe-bench-web: frappe-bench-workers:">
+						</div>
 						<div class="server-restart-page__checks">
 							<label><input type="checkbox" class="server-restart-page__op-clear-cache"> ${bi("Clear Cache", "تفريغ الكاش")}</label>
 							<label><input type="checkbox" class="server-restart-page__op-migrate"> ${bi("Migrate", "ترحيل")}</label>
@@ -134,6 +138,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	const $ops = $root.find(".server-restart-page__ops");
 	const $benchPath = $root.find(".server-restart-page__bench-path");
 	const $benchSite = $root.find(".server-restart-page__bench-site");
+	const $benchSupervisorTargets = $root.find(".server-restart-page__bench-supervisor-targets");
 	const $opClearCache = $root.find(".server-restart-page__op-clear-cache");
 	const $opMigrate = $root.find(".server-restart-page__op-migrate");
 	const $opBuild = $root.find(".server-restart-page__op-build");
@@ -339,6 +344,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				$command.val(m.restart_command || "");
 				$benchPath.val(m.bench_path || "");
 				$benchSite.val(m.bench_site || "");
+				$benchSupervisorTargets.val(m.bench_supervisor_targets || "");
 				$opClearCache.prop("checked", !!m.bench_op_clear_cache);
 				$opMigrate.prop("checked", !!m.bench_op_migrate);
 				$opBuild.prop("checked", !!m.bench_op_build);
@@ -373,6 +379,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				restart_command: String($command.val() || "").trim() || null,
 				bench_path: String($benchPath.val() || "").trim() || null,
 				bench_site: String($benchSite.val() || "").trim() || null,
+				bench_supervisor_targets: String($benchSupervisorTargets.val() || "").trim() || null,
 				bench_op_clear_cache: $opClearCache.is(":checked") ? 1 : 0,
 				bench_op_migrate: $opMigrate.is(":checked") ? 1 : 0,
 				bench_op_build: $opBuild.is(":checked") ? 1 : 0,

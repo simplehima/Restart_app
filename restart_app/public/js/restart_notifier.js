@@ -178,6 +178,7 @@ function toParseableDateString(raw) {
 			setModalMode(root, true);
 			setMinimizedMode(root, false);
 			setUrgentMode(root, false);
+			setPopupProgress(root, null);
 			if (titleEl) titleEl.textContent = bi("Server restart", "إعادة تشغيل الخادم");
 			if (metaEl) metaEl.textContent = bi("Action required", "إجراء مطلوب");
 			if (messageEl) {
@@ -204,6 +205,7 @@ function toParseableDateString(raw) {
 		}
 
 		if (root.classList.contains("restart-notifier--modal") && messageEl) {
+			setPopupProgress(root, null);
 			if (metaEl) metaEl.textContent = "Maintenance notice / تنبيه صيانة";
 			messageEl.innerHTML = "";
 			messageEl.appendChild(
@@ -228,6 +230,7 @@ function toParseableDateString(raw) {
 				).replace("{0}", String(remainingSec));
 			}
 		} else if (countdownEl) {
+			setPopupProgress(root, null);
 			if (metaEl) {
 				metaEl.textContent = "Auto-minimized: countdown running / تم التصغير تلقائيا: العد التنازلي يعمل";
 			}
@@ -250,6 +253,7 @@ function toParseableDateString(raw) {
 		const root = ensureRoot();
 		currentIsoUtc = isoUtc;
 		targetMs = parsed;
+		setPopupProgress(root, null);
 
 		clearTimer();
 		setVisible(root, true);
@@ -326,6 +330,7 @@ function toParseableDateString(raw) {
 		setModalMode(root, false);
 		setMinimizedMode(root, false);
 		setUrgentMode(root, false);
+		setPopupProgress(root, null);
 
 		const actions = root.querySelector(".restart-notifier__actions");
 		if (actions) actions.hidden = false;

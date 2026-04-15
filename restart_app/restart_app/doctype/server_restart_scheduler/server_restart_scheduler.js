@@ -14,6 +14,7 @@ frappe.ui.form.on("Server Restart Scheduler", {
 			[
 				"bench_path",
 				"bench_site",
+				"bench_supervisor_targets",
 				"bench_op_clear_cache",
 				"bench_op_migrate",
 				"bench_op_build",
