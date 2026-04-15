@@ -61,6 +61,14 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 					</div>
 				</div>
 				<div class="server-restart-page__status"></div>
+				<div class="server-restart-page__progress" hidden>
+					<div class="server-restart-page__progress-head">
+						<span class="server-restart-page__progress-title">${bi("Execution Progress", "تقدم التنفيذ")}</span>
+						<span class="server-restart-page__progress-pct">0%</span>
+					</div>
+					<div class="server-restart-page__progress-bar"><span class="server-restart-page__progress-fill"></span></div>
+					<div class="server-restart-page__progress-msg">${bi("Waiting...", "بانتظار...")}</div>
+				</div>
 				<div class="server-restart-page__git">
 					<div class="server-restart-page__git-title">${bi("App Updates", "تحديثات التطبيق")}</div>
 					<div class="server-restart-page__git-controls">
@@ -84,13 +92,14 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 									<th>${bi("When", "متى")}</th>
 									<th>${bi("Status", "الحالة")}</th>
 									<th>${bi("Action", "الإجراء")}</th>
+									<th>${bi("Step", "الخطوة")}</th>
 									<th>${bi("Mode", "الوضع")}</th>
 									<th>${bi("Command", "الأمر")}</th>
 									<th>${bi("Details", "التفاصيل")}</th>
 								</tr>
 							</thead>
 							<tbody class="server-restart-page__logs-body">
-								<tr><td colspan="6">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>
+								<tr><td colspan="7">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>
 							</tbody>
 						</table>
 					</div>
@@ -128,6 +137,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	const $gitBranch = $root.find(".server-restart-page__git-branch");
 	const $gitStatus = $root.find(".server-restart-page__git-status");
 	const $logsBody = $root.find(".server-restart-page__logs-body");
+	const $progress = $root.find(".server-restart-page__progress");
+	const $progressPct = $root.find(".server-restart-page__progress-pct");
+	const $progressFill = $root.find(".server-restart-page__progress-fill");
+	const $progressMsg = $root.find(".server-restart-page__progress-msg");
 	let countdownTimer = null;
 
 	function stopCountdown() {
@@ -203,9 +216,17 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 
 	function renderLogs(logs) {
 		if (!Array.isArray(logs) || !logs.length) {
-			$logsBody.html(`<tr><td colspan="6">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>`);
+			$logsBody.html(`<tr><td colspan="7">${bi("No logs yet.", "لا توجد سجلات حتى الآن.")}</td></tr>`);
 			return;
 		}
+		const stepLabelFromCommand = (cmd) => {
+			const c = String(cmd || "").toLowerCase();
+			if (c.includes(" clear-cache")) return bi("Clear Cache", "تفريغ الكاش");
+			if (c.includes(" migrate")) return bi("Migrate", "ترحيل");
+			if (c.includes(" build --app")) return bi("Build App", "بناء التطبيق");
+			if (c.includes("bench restart") || c.includes("supervisorctl restart")) return bi("Restart", "إعادة التشغيل");
+			return bi("Custom", "مخصص");
+		};
 		const rows = logs.map((row) => {
 			const statusCls = row.status === "Success" ? "ok" : "warn";
 			const commandRaw = String(row.executed_command || "").replace(/\s*\n+\s*/g, " ; ");
@@ -213,11 +234,13 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 			const detailRaw = row.status === "Success" ? (row.output_log || "") : (row.error_log || "");
 			const detailText = String(detailRaw || "").replace(/\s*\n+\s*/g, " | ");
 			const detailEsc = frappe.utils.escape_html(String(detailText || "").slice(0, 120) || "-");
+			const stepLabel = stepLabelFromCommand(row.executed_command || "");
 			return `
 				<tr>
 					<td>${frappe.utils.escape_html(row.started_at || row.creation || "-")}</td>
 					<td><span class="server-restart-page__chip server-restart-page__chip--${statusCls}">${frappe.utils.escape_html(row.status || "-")}</span></td>
 					<td>${frappe.utils.escape_html(row.restart_action || "-")}</td>
+					<td>${frappe.utils.escape_html(stepLabel)}</td>
 					<td>${frappe.utils.escape_html(row.plan_mode || "-")}</td>
 					<td title="${frappe.utils.escape_html(row.executed_command || "")}">${commandText}</td>
 					<td title="${frappe.utils.escape_html(detailText || "")}">${detailEsc}</td>
@@ -234,6 +257,33 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 			callback(r) {
 				if (r.exc || !r.message) return;
 				renderLogs(r.message.logs || []);
+			},
+		});
+	}
+
+	function setProgressVisible(on) {
+		$progress.prop("hidden", !on);
+	}
+
+	function refreshProgress() {
+		frappe.call({
+			method: "restart_app.api.get_current_restart_progress",
+			callback(r) {
+				if (r.exc || !r.message) return;
+				const p = r.message;
+				if (!p.in_progress) {
+					setProgressVisible(false);
+					return;
+				}
+				setProgressVisible(true);
+				const pct = Math.max(0, Math.min(100, Number(p.percent || 0)));
+				$progressPct.text(`${pct}%`);
+				$progressFill.css("width", `${pct}%`);
+				$progressMsg.text(
+					`${p.message || ""} (${bi("Done", "المنجز")}: ${p.completed_steps || 0}/${p.total_steps || 0}${
+						p.failed_steps ? `, ${bi("Failed", "فشل")}: ${p.failed_steps}` : ""
+					})`
+				);
 			},
 		});
 	}
@@ -277,8 +327,10 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				toggleActionSections();
 				if (m.status === "Pending" && m.scheduled_at) {
 					startCountdown(m.scheduled_at);
+					refreshProgress();
 				} else {
 					stopCountdown();
+					setProgressVisible(false);
 				}
 			},
 		});
@@ -314,6 +366,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				frappe.show_alert({ message: bi("Restart scheduled; users notified.", "تمت جدولة إعادة التشغيل؛ تم إشعار المستخدمين."), indicator: "green" });
 				refreshStatus();
 				refreshLogs();
+				refreshProgress();
 			},
 		});
 	});
@@ -328,6 +381,7 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 				frappe.show_alert({ message: bi("Pending restart cleared.", "تمت إزالة إعادة التشغيل المعلقة."), indicator: "orange" });
 				refreshStatus();
 				refreshLogs();
+				setProgressVisible(false);
 			},
 		});
 	});
@@ -374,4 +428,5 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	refreshStatus();
 	refreshGitStatus();
 	refreshLogs();
+	setInterval(refreshProgress, 5000);
 };

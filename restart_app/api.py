@@ -59,6 +59,95 @@ def _normalize_scheduled_at(scheduled_at, minutes_from_now):
 	return get_datetime(scheduled_at)
 
 
+def _bench_total_steps(doc):
+	total_steps = 0
+	if int(doc.bench_op_clear_cache or 0):
+		total_steps += 1
+	if int(doc.bench_op_migrate or 0):
+		total_steps += 1
+	if int(doc.bench_op_build or 0):
+		apps = [a.strip() for a in str(doc.bench_build_apps or "").split(",") if a.strip()]
+		total_steps += len(apps) if apps else 1
+	if int(doc.bench_op_restart or 0):
+		total_steps += 1
+	return max(total_steps, 1)
+
+
+def _progress_for_doc(doc):
+	if doc.status != "Pending" or not doc.scheduled_at:
+		return {
+			"in_progress": False,
+			"total_steps": 0,
+			"completed_steps": 0,
+			"failed_steps": 0,
+			"percent": 0,
+			"eta_seconds": None,
+			"message": _("No active restart workflow."),
+		}
+
+	action = str(doc.restart_action or "Restart Command")
+	if action != "Bench Operations (checkboxes)":
+		return {
+			"in_progress": True,
+			"total_steps": 1,
+			"completed_steps": 0,
+			"failed_steps": 0,
+			"percent": 5,
+			"eta_seconds": None,
+			"message": _("Command is running."),
+		}
+
+	total_steps = _bench_total_steps(doc)
+	rows = frappe.get_all(
+		"Server Restart Log",
+		filters={"scheduled_at": doc.scheduled_at, "plan_mode": ["like", "sequence-step-%"]},
+		fields=["status", "started_at", "completed_at"],
+		order_by="creation asc",
+		limit_page_length=500,
+	)
+	completed_steps = len([r for r in rows if r.status == "Success"])
+	failed_steps = len([r for r in rows if r.status == "Failed"])
+	done_steps = completed_steps + failed_steps
+	step_percent = int((done_steps / total_steps) * 100) if total_steps > 0 else 0
+
+	remaining_steps = max(0, total_steps - done_steps)
+	durations = []
+	for r in rows:
+		if r.started_at and r.completed_at:
+			sec = (get_datetime(r.completed_at) - get_datetime(r.started_at)).total_seconds()
+			if sec > 0:
+				durations.append(sec)
+	avg_step_seconds = (sum(durations) / len(durations)) if durations else 35.0
+
+	# Time-based estimate keeps progress moving during long-running steps.
+	scheduled_at_dt = get_datetime(doc.scheduled_at)
+	elapsed = max(0.0, (now_datetime() - scheduled_at_dt).total_seconds())
+	expected_total_seconds = max(30.0, avg_step_seconds * total_steps)
+	time_percent = int(min(95, (elapsed / expected_total_seconds) * 100)) if done_steps < total_steps else 100
+	percent = max(step_percent, time_percent)
+	if done_steps >= total_steps:
+		percent = 100
+
+	eta_seconds = int(max(5, expected_total_seconds - elapsed)) if done_steps < total_steps else 0
+
+	current_step = min(done_steps + 1, total_steps) if done_steps < total_steps else total_steps
+	message = _("Step {0} of {1} in progress.").format(current_step, total_steps)
+	if failed_steps:
+		message = _("One or more steps failed. Check logs.")
+	elif done_steps >= total_steps:
+		message = _("All steps completed. Waiting for final status update.")
+
+	return {
+		"in_progress": True,
+		"total_steps": total_steps,
+		"completed_steps": completed_steps,
+		"failed_steps": failed_steps,
+		"percent": percent,
+		"eta_seconds": eta_seconds,
+		"message": message,
+	}
+
+
 @frappe.whitelist()
 def schedule_restart(
 	scheduled_at=None,
@@ -199,6 +288,7 @@ def get_restart_status():
 			"last_error": "",
 		}
 
+	progress = _progress_for_doc(row)
 	return {
 		"ok": True,
 		"status": row.status,
@@ -215,6 +305,7 @@ def get_restart_status():
 		"bench_op_build": int(row.bench_op_build or 0),
 		"bench_op_restart": int(row.bench_op_restart or 0),
 		"bench_build_apps": row.bench_build_apps or "",
+		"progress": progress,
 	}
 
 
@@ -313,5 +404,15 @@ def get_restart_logs(limit=20):
 		limit_page_length=limit,
 	)
 	return {"ok": True, "logs": rows}
+
+
+@frappe.whitelist()
+def get_current_restart_progress():
+	ensure_restart_scheduler_permission()
+	doc = _scheduler_doc()
+	progress = _progress_for_doc(doc)
+	progress["ok"] = True
+	progress["status"] = doc.status
+	return progress
 
 

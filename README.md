@@ -1,6 +1,6 @@
 # Restart App
 
-Restart App is a Frappe app for scheduling controlled server restart windows with bilingual user notifications (English/Arabic), live countdown popups, and bench operation controls.
+Restart App is a Frappe app for scheduling controlled server restart windows with bilingual user notifications (English/Arabic), live countdown popups, execution progress tracking, and bench operation controls.
 
 ## Highlights
 
@@ -8,8 +8,21 @@ Restart App is a Frappe app for scheduling controlled server restart windows wit
 - Notify active users globally with countdown popup and warning tones
 - Bilingual UI and notifications (English / Arabic)
 - Bench operations mode with checkboxes (`clear-cache`, `migrate`, `build`, `restart`)
+- Per-step restart execution logs (success/failure, command, output/error)
+- Live execution progress and ETA for Bench Operations runs
 - In-page restart control center at `/app/server-restart`
 - App update utilities (check, pull, push) from the same page
+
+## What Users See
+
+- Global bilingual popup on all pages with countdown before restart
+- Restart-in-progress state with progress percent and ETA
+- Action-required reload state after restart
+- Server restart console at `/app/server-restart` with:
+  - scheduling controls
+  - bench operations toggles
+  - app update tools
+  - execution logs table with step labels
 
 ## Installation
 

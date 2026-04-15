@@ -85,6 +85,13 @@ function toParseableDateString(raw) {
 				<div class="restart-notifier__meta">${bi("Maintenance notice", "تنبيه صيانة")}</div>
 				<div class="restart-notifier__message"></div>
 				<div class="restart-notifier__countdown" hidden></div>
+				<div class="restart-notifier__progress" hidden>
+					<div class="restart-notifier__progress-head">
+						<span class="restart-notifier__progress-pct">0%</span>
+						<span class="restart-notifier__progress-eta"></span>
+					</div>
+					<div class="restart-notifier__progress-bar"><span class="restart-notifier__progress-fill"></span></div>
+				</div>
 				<div class="restart-notifier__actions">
 					<button type="button" class="btn btn-primary btn-sm restart-notifier__ack">${bi("OK", "موافق")}</button>
 					<button type="button" class="btn btn-default btn-sm restart-notifier__reload" hidden>${bi("Reload Page", "إعادة تحميل الصفحة")}</button>
@@ -114,6 +121,30 @@ function toParseableDateString(raw) {
 
 	function setUrgentMode(root, on) {
 		root.classList.toggle("restart-notifier--urgent", on);
+	}
+
+	function setPopupProgress(root, progress) {
+		const wrap = root.querySelector(".restart-notifier__progress");
+		const pctEl = root.querySelector(".restart-notifier__progress-pct");
+		const etaEl = root.querySelector(".restart-notifier__progress-eta");
+		const fillEl = root.querySelector(".restart-notifier__progress-fill");
+		if (!wrap || !pctEl || !etaEl || !fillEl) return;
+		if (!progress || !progress.in_progress) {
+			wrap.hidden = true;
+			return;
+		}
+		const pct = Math.max(0, Math.min(100, Number(progress.percent || 0)));
+		fillEl.style.width = `${pct}%`;
+		pctEl.textContent = `${pct}%`;
+		if (progress.eta_seconds && Number(progress.eta_seconds) > 0) {
+			const eta = Number(progress.eta_seconds);
+			const m = Math.floor(eta / 60);
+			const s = eta % 60;
+			etaEl.textContent = bi("ETA", "الوقت المتبقي") + ` ${m}:${String(s).padStart(2, "0")}`;
+		} else {
+			etaEl.textContent = "";
+		}
+		wrap.hidden = false;
 	}
 
 	function acknowledge(root) {
@@ -332,7 +363,7 @@ function toParseableDateString(raw) {
 	}
 
 	function pollStatusFallback() {
-		function setRestartInProgressState(scheduleToken) {
+		function setRestartInProgressState(scheduleToken, progress) {
 			const root = ensureRoot();
 			setVisible(root, true);
 			setModalMode(root, true);
@@ -356,6 +387,7 @@ function toParseableDateString(raw) {
 					"أمر إعادة التشغيل ما زال قيد التنفيذ. يرجى الانتظار ثم إعادة التحميل بعد الاكتمال."
 				);
 			}
+			setPopupProgress(root, progress);
 			if (countdownEl) countdownEl.hidden = true;
 			if (actions) actions.hidden = false;
 			const ackBtn = root.querySelector(".restart-notifier__ack");
@@ -371,7 +403,7 @@ function toParseableDateString(raw) {
 				if (!scheduleToken) return;
 				const parsedToken = Date.parse(toParseableDateString(scheduleToken));
 				if (!Number.isNaN(parsedToken) && parsedToken <= Date.now()) {
-					setRestartInProgressState(scheduleToken);
+					setRestartInProgressState(scheduleToken, m.progress || null);
 					return;
 				}
 				const sameSchedule =

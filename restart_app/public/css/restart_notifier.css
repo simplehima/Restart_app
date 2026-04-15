@@ -110,6 +110,43 @@
 	animation: rn-countdown-breathe 1.8s ease-in-out infinite;
 }
 
+.restart-notifier__progress {
+	margin-top: 8px;
+}
+
+.restart-notifier__progress-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 12px;
+	margin-bottom: 6px;
+}
+
+.restart-notifier__progress-pct {
+	font-weight: 700;
+	color: #0f172a;
+}
+
+.restart-notifier__progress-eta {
+	opacity: 0.85;
+}
+
+.restart-notifier__progress-bar {
+	height: 8px;
+	border-radius: 999px;
+	background: #e2e8f0;
+	overflow: hidden;
+}
+
+.restart-notifier__progress-fill {
+	display: block;
+	height: 100%;
+	width: 0;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #0ea5e9, #2563eb);
+	transition: width 240ms ease;
+}
+
 .restart-notifier.restart-notifier--urgent .restart-notifier__countdown {
 	color: #dc2626;
 	text-shadow:
@@ -335,6 +372,55 @@
 .server-restart-page__status--warn {
 	border-color: #fdba74;
 	background: #fff7ed;
+}
+
+.server-restart-page__progress {
+	margin-top: 12px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--card-bg, #fff) 94%, #f0f9ff);
+	border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+}
+
+.server-restart-page__progress-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.server-restart-page__progress-title {
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.server-restart-page__progress-pct {
+	font-size: 12px;
+	font-weight: 700;
+	color: #0369a1;
+}
+
+.server-restart-page__progress-bar {
+	height: 10px;
+	border-radius: 999px;
+	background: #e2e8f0;
+	overflow: hidden;
+}
+
+.server-restart-page__progress-fill {
+	display: block;
+	height: 100%;
+	width: 0;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #0284c7, #2563eb);
+	transition: width 280ms ease;
+}
+
+.server-restart-page__progress-msg {
+	margin-top: 8px;
+	font-size: 12px;
+	line-height: 1.4;
 }
 
 .server-restart-page__git {
