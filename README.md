@@ -51,6 +51,8 @@ bench restart
 
 ![Global Popup](docs/screenshots/global-popup.png)
 
+<img width="1891" height="904" alt="image" src="https://github.com/user-attachments/assets/8d3c6daa-5222-43aa-b88c-67b1adbb983f" />
+
 ## Suggested GitHub Topics (Tags)
 
 Use these repository topics in GitHub:
