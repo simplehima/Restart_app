@@ -198,10 +198,11 @@
 
 .server-restart-page {
 	padding: 8px 0;
+	width: 100%;
 }
 
 .server-restart-page__card {
-	max-width: 760px;
+	width: min(1180px, calc(100vw - 72px));
 	padding: 22px;
 	border-radius: 14px;
 	background: var(--card-bg, #ffffff);
@@ -263,8 +264,57 @@
 .server-restart-page__checks label {
 	font-size: 13px;
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: 8px;
+	line-height: 1.4;
+}
+
+.server-restart-page__checks input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 16px;
+	height: 16px;
+	min-width: 16px;
+	min-height: 16px;
+	margin: 1px 0 0;
+	border: 1.5px solid #94a3b8;
+	border-radius: 4px;
+	background: #fff;
+	display: inline-grid;
+	place-content: center;
+	cursor: pointer;
+	transition: all 120ms ease;
+}
+
+.server-restart-page__checks input[type="checkbox"]::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	transform: scale(0);
+	transition: transform 120ms ease;
+	background: #ffffff;
+	clip-path: polygon(14% 44%, 0 65%, 40% 100%, 100% 18%, 82% 0, 38% 62%);
+}
+
+.server-restart-page__checks input[type="checkbox"]:checked {
+	background: #2563eb;
+	border-color: #2563eb;
+}
+
+.server-restart-page__checks input[type="checkbox"]:checked::before {
+	transform: scale(1);
+}
+
+.server-restart-page__checks input[type="checkbox"]:focus-visible {
+	outline: 2px solid rgba(37, 99, 235, 0.3);
+	outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+	.server-restart-page__card {
+		width: calc(100vw - 32px);
+		padding: 18px;
+	}
 }
 
 .server-restart-page__status {
@@ -285,6 +335,40 @@
 .server-restart-page__status--warn {
 	border-color: #fdba74;
 	background: #fff7ed;
+}
+
+.server-restart-page__git {
+	margin-top: 14px;
+	padding: 12px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--card-bg, #fff) 94%, #ecfeff);
+	border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+}
+
+.server-restart-page__git-title {
+	font-size: 13px;
+	font-weight: 700;
+	margin-bottom: 8px;
+}
+
+.server-restart-page__git-controls {
+	display: grid;
+	grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto auto auto;
+	gap: 8px;
+	align-items: center;
+}
+
+.server-restart-page__git-status {
+	margin-top: 10px;
+	font-size: 12px;
+	line-height: 1.4;
+	opacity: 0.9;
+}
+
+@media (max-width: 900px) {
+	.server-restart-page__git-controls {
+		grid-template-columns: 1fr;
+	}
 }
 
 .server-restart-page__actions {

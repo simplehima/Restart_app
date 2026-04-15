@@ -2,6 +2,8 @@
 # For license information, please see license.txt
 
 from datetime import timedelta
+from pathlib import Path
+import subprocess
 
 import frappe
 from frappe import _
@@ -26,6 +28,21 @@ def _scheduler_doc():
 
 def _max_horizon_days():
 	return int(frappe.conf.get("restart_scheduler_max_days") or 7)
+
+
+def _repo_root():
+	return Path(__file__).resolve().parent.parent
+
+
+def _run_git(args):
+	proc = subprocess.run(
+		["git", *args],
+		cwd=str(_repo_root()),
+		capture_output=True,
+		text=True,
+		check=False,
+	)
+	return proc.returncode, (proc.stdout or "").strip(), (proc.stderr or "").strip()
 
 
 def _normalize_scheduled_at(scheduled_at, minutes_from_now):
@@ -198,3 +215,77 @@ def get_restart_status():
 		"bench_op_restart": int(row.bench_op_restart or 0),
 		"bench_build_apps": row.bench_build_apps or "",
 	}
+
+
+@frappe.whitelist()
+def get_app_update_status(remote="origin", branch="main"):
+	ensure_restart_scheduler_permission()
+	remote = (remote or "origin").strip()
+	branch = (branch or "main").strip()
+
+	rc, head_sha, err = _run_git(["rev-parse", "HEAD"])
+	if rc != 0:
+		frappe.throw(_("Unable to read repository HEAD: {0}").format(err or "git rev-parse failed"))
+
+	_run_git(["fetch", remote, branch, "--quiet"])
+
+	rc, local_branch, err = _run_git(["rev-parse", "--abbrev-ref", "HEAD"])
+	if rc != 0:
+		local_branch = "unknown"
+
+	rc, counts, rev_list_err = _run_git(["rev-list", "--left-right", "--count", f"HEAD...{remote}/{branch}"])
+	ahead = 0
+	behind = 0
+	if rc == 0 and counts:
+		parts = counts.split()
+		if len(parts) >= 2:
+			ahead = int(parts[0] or 0)
+			behind = int(parts[1] or 0)
+
+	rc, status_lines, status_err = _run_git(["status", "--porcelain"])
+	dirty = bool(status_lines.strip()) if rc == 0 else False
+
+	return {
+		"ok": True,
+		"remote": remote,
+		"branch": branch,
+		"local_branch": local_branch,
+		"head_sha": head_sha,
+		"ahead": ahead,
+		"behind": behind,
+		"dirty": dirty,
+		"can_pull": behind > 0 and not dirty,
+		"can_push": ahead > 0 and not dirty,
+	}
+
+
+@frappe.whitelist()
+def pull_app_updates(remote="origin", branch="main"):
+	ensure_restart_scheduler_permission()
+	status = get_app_update_status(remote=remote, branch=branch)
+	if status.get("dirty"):
+		frappe.throw(_("Working tree has uncommitted changes. Commit or stash before pulling."))
+	if status.get("behind", 0) <= 0:
+		return {"ok": True, "changed": False, "message": _("Already up to date.")}
+
+	rc, out, err = _run_git(["pull", status["remote"], status["branch"]])
+	if rc != 0:
+		frappe.throw(_("Git pull failed: {0}").format(err or out or "unknown error"))
+	return {"ok": True, "changed": True, "output": out}
+
+
+@frappe.whitelist()
+def push_app_updates(remote="origin", branch="main"):
+	ensure_restart_scheduler_permission()
+	status = get_app_update_status(remote=remote, branch=branch)
+	if status.get("dirty"):
+		frappe.throw(_("Working tree has uncommitted changes. Commit before pushing."))
+	if status.get("ahead", 0) <= 0:
+		return {"ok": True, "changed": False, "message": _("No local commits to push.")}
+
+	rc, out, err = _run_git(["push", status["remote"], f"HEAD:{status['branch']}"])
+	if rc != 0:
+		frappe.throw(_("Git push failed: {0}").format(err or out or "unknown error"))
+	return {"ok": True, "changed": True, "output": out}
+
+

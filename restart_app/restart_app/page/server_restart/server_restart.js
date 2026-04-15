@@ -61,6 +61,17 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 					</div>
 				</div>
 				<div class="server-restart-page__status"></div>
+				<div class="server-restart-page__git">
+					<div class="server-restart-page__git-title">${bi("App Updates", "تحديثات التطبيق")}</div>
+					<div class="server-restart-page__git-controls">
+						<input type="text" class="form-control server-restart-page__git-remote" value="origin" placeholder="origin">
+						<input type="text" class="form-control server-restart-page__git-branch" value="main" placeholder="main">
+						<button class="btn btn-default btn-sm server-restart-page__git-check">${bi("Check Updates", "فحص التحديثات")}</button>
+						<button class="btn btn-default btn-sm server-restart-page__git-pull">${bi("Pull Updates", "سحب التحديثات")}</button>
+						<button class="btn btn-default btn-sm server-restart-page__git-push">${bi("Push Updates", "دفع التحديثات")}</button>
+					</div>
+					<div class="server-restart-page__git-status">${bi("Update status not checked yet.", "لم يتم فحص حالة التحديث بعد.")}</div>
+				</div>
 				<div class="server-restart-page__actions">
 					<button class="btn btn-primary btn-sm server-restart-page__schedule">
 						${bi("Schedule & Notify", "جدولة وإشعار")}
@@ -90,6 +101,9 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	const $opRestart = $root.find(".server-restart-page__op-restart");
 	const $buildApps = $root.find(".server-restart-page__build-apps");
 	const $status = $root.find(".server-restart-page__status");
+	const $gitRemote = $root.find(".server-restart-page__git-remote");
+	const $gitBranch = $root.find(".server-restart-page__git-branch");
+	const $gitStatus = $root.find(".server-restart-page__git-status");
 	let countdownTimer = null;
 
 	function stopCountdown() {
@@ -133,6 +147,34 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 	function toggleActionSections() {
 		const isOps = String($action.val() || "") === "Bench Operations (checkboxes)";
 		$ops.prop("hidden", !isOps);
+	}
+
+	function setGitStatusHtml(html) {
+		$gitStatus.html(html);
+	}
+
+	function refreshGitStatus() {
+		frappe.call({
+			method: "restart_app.api.get_app_update_status",
+			args: {
+				remote: String($gitRemote.val() || "origin").trim() || "origin",
+				branch: String($gitBranch.val() || "main").trim() || "main",
+			},
+			callback(r) {
+				if (r.exc || !r.message) return;
+				const g = r.message;
+				const dirtyLabel = g.dirty ? bi("Yes", "نعم") : bi("No", "لا");
+				setGitStatusHtml(
+					[
+						`<strong>${bi("Repo", "المستودع")}:</strong> ${frappe.utils.escape_html(g.remote)}/${frappe.utils.escape_html(g.branch)}`,
+						`<strong>${bi("Local Branch", "الفرع المحلي")}:</strong> ${frappe.utils.escape_html(g.local_branch || "")}`,
+						`<strong>${bi("Ahead", "متقدم")}:</strong> ${g.ahead || 0}`,
+						`<strong>${bi("Behind", "متأخر")}:</strong> ${g.behind || 0}`,
+						`<strong>${bi("Uncommitted Changes", "تغييرات غير محفوظة")}:</strong> ${dirtyLabel}`,
+					].join(" &nbsp;|&nbsp; ")
+				);
+			},
+		});
 	}
 
 	function refreshStatus() {
@@ -231,6 +273,40 @@ frappe.pages["server-restart"].on_page_load = function (wrapper) {
 		frappe.set_route("Form", "Server Restart Scheduler");
 	});
 	$action.on("change", toggleActionSections);
+	$root.find(".server-restart-page__git-check").on("click", refreshGitStatus);
+	$root.find(".server-restart-page__git-pull").on("click", () => {
+		frappe.call({
+			method: "restart_app.api.pull_app_updates",
+			args: {
+				remote: String($gitRemote.val() || "origin").trim() || "origin",
+				branch: String($gitBranch.val() || "main").trim() || "main",
+			},
+			freeze: true,
+			freeze_message: bi("Pulling updates...", "جار سحب التحديثات..."),
+			callback(r) {
+				if (r.exc) return;
+				frappe.show_alert({ message: bi("App updates pulled.", "تم سحب تحديثات التطبيق."), indicator: "green" });
+				refreshGitStatus();
+			},
+		});
+	});
+	$root.find(".server-restart-page__git-push").on("click", () => {
+		frappe.call({
+			method: "restart_app.api.push_app_updates",
+			args: {
+				remote: String($gitRemote.val() || "origin").trim() || "origin",
+				branch: String($gitBranch.val() || "main").trim() || "main",
+			},
+			freeze: true,
+			freeze_message: bi("Pushing updates...", "جار دفع التحديثات..."),
+			callback(r) {
+				if (r.exc) return;
+				frappe.show_alert({ message: bi("App updates pushed.", "تم دفع تحديثات التطبيق."), indicator: "green" });
+				refreshGitStatus();
+			},
+		});
+	});
 
 	refreshStatus();
+	refreshGitStatus();
 };

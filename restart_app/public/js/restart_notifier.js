@@ -279,7 +279,6 @@ function toParseableDateString(raw) {
 			const ackBtn = root.querySelector(".restart-notifier__ack");
 			if (ackBtn) ackBtn.hidden = false;
 		}
-
 		tick(root);
 		intervalId = setInterval(() => tick(root), 1000);
 	}
@@ -333,12 +332,44 @@ function toParseableDateString(raw) {
 	}
 
 	function pollStatusFallback() {
+		function setDelayedPendingState(scheduleToken) {
+			const root = ensureRoot();
+			setVisible(root, true);
+			setModalMode(root, false);
+			setMinimizedMode(root, true);
+			setUrgentMode(root, false);
+			currentIsoUtc = scheduleToken;
+			targetMs = Date.parse(toParseableDateString(scheduleToken));
+
+			const titleEl = root.querySelector(".restart-notifier__title");
+			const metaEl = root.querySelector(".restart-notifier__meta");
+			const messageEl = root.querySelector(".restart-notifier__message");
+			const countdownEl = root.querySelector(".restart-notifier__countdown");
+			const actions = root.querySelector(".restart-notifier__actions");
+
+			if (titleEl) titleEl.textContent = bi("Restart delayed", "تأخرت إعادة التشغيل");
+			if (metaEl) metaEl.textContent = bi("Waiting for backend", "بانتظار الخلفية");
+			if (messageEl) {
+				messageEl.hidden = false;
+				messageEl.textContent = bi(
+					"Restart command is still running or worker is offline. You can keep working and refresh later.",
+					"أمر إعادة التشغيل ما زال يعمل أو أن العامل غير متصل. يمكنك متابعة العمل وإعادة التحميل لاحقا."
+				);
+			}
+			if (countdownEl) countdownEl.hidden = true;
+			if (actions) actions.hidden = true;
+		}
+
 		const handleStatus = (m) => {
 			if (!m) return;
 			if (m.status === "Pending") {
 				const scheduleToken = m.scheduled_at_utc || m.scheduled_at;
 				if (!scheduleToken) return;
 				const parsedToken = Date.parse(toParseableDateString(scheduleToken));
+				if (!Number.isNaN(parsedToken) && parsedToken <= Date.now()) {
+					setDelayedPendingState(scheduleToken);
+					return;
+				}
 				const sameSchedule =
 					targetMs != null &&
 					!Number.isNaN(parsedToken) &&
