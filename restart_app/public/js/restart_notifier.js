@@ -174,23 +174,24 @@ function toParseableDateString(raw) {
 		const metaEl = root.querySelector(".restart-notifier__meta");
 
 		if (remaining <= 0) {
-			clearTimer();
 			setModalMode(root, true);
 			setMinimizedMode(root, false);
 			setUrgentMode(root, false);
 			setPopupProgress(root, null);
-			if (titleEl) titleEl.textContent = bi("Server restart", "إعادة تشغيل الخادم");
-			if (metaEl) metaEl.textContent = bi("Action required", "إجراء مطلوب");
+			if (titleEl) titleEl.textContent = bi("Restart in progress", "إعادة التشغيل قيد التنفيذ");
+			if (metaEl) metaEl.textContent = bi("Please wait", "يرجى الانتظار");
 			if (messageEl) {
-				messageEl.textContent = bi("The server restarted. Please reload this page.", "تمت إعادة تشغيل الخادم. يرجى إعادة تحميل الصفحة.");
+				messageEl.textContent = bi(
+					"The scheduled restart time has passed. Waiting for server restart confirmation.",
+					"انتهى وقت إعادة التشغيل المجدول. جار انتظار تأكيد إعادة تشغيل الخادم."
+				);
 				messageEl.hidden = false;
 			}
 			if (countdownEl) countdownEl.hidden = true;
 			const ackBtn = root.querySelector(".restart-notifier__ack");
 			const reloadBtn = root.querySelector(".restart-notifier__reload");
 			if (ackBtn) ackBtn.hidden = true;
-			if (reloadBtn) reloadBtn.hidden = false;
-			playBeep();
+			if (reloadBtn) reloadBtn.hidden = true;
 			return;
 		}
 
