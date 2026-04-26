@@ -39,6 +39,59 @@ Example:
 }
 ```
 
+### New Bench Setup (Recommended for production)
+
+If you want the app to run `supervisorctl restart all` from scheduled jobs without prompting for a password, set up `sudoers` once.
+
+1. Find supervisorctl path:
+
+```bash
+which supervisorctl
+```
+
+2. Create a dedicated sudoers rule (replace the path if different):
+
+```bash
+sudo visudo -f /etc/sudoers.d/99-frappe-supervisor
+```
+
+Add:
+
+```sudoers
+frappe ALL=(ALL:ALL) NOPASSWD: /usr/bin/supervisorctl restart all
+```
+
+Then set permissions:
+
+```bash
+sudo chmod 440 /etc/sudoers.d/99-frappe-supervisor
+```
+
+3. Verify non-interactive execution as `frappe` user:
+
+```bash
+sudo -n /usr/bin/supervisorctl restart all
+echo $?
+```
+
+Expected result: exit code `0`.
+
+4. Configure app command on the site:
+
+```bash
+bench --site <your-site> set-config restart_supervisor_command "sudo /usr/bin/supervisorctl restart all"
+bench --site <your-site> clear-cache
+bench restart
+```
+
+5. In Restart App UI (`/app/server-restart`) use:
+   - Restart Action: `Bench Operations (checkboxes)`
+   - Enable only: `Restart (Supervisor)`
+   - Leave: `Supervisor Targets` empty (so the configured `restart_supervisor_command` is used)
+   - Set `Bench Path` and `Bench Site` for your environment
+
+If your policy does not allow `sudo`, see the non-sudo alternatives by configuring Supervisor socket permissions or using a different approved restart command.
+
 ## Installation
 
 From your bench:

@@ -126,6 +126,22 @@ def _run_restart_command(command: str):
 	command = str(command or "").strip()
 	if not command:
 		raise ValueError("empty command")
+
+	# If command restarts the current bench/supervisor stack, the worker running this
+	# code can be terminated before status/log updates are saved. Launch detached so
+	# scheduler flow can finish and persist completion state first.
+	disruptive_restart = any(token in command for token in ("supervisorctl restart all", "bench restart"))
+	if disruptive_restart:
+		subprocess.Popen(
+			command,
+			shell=True,
+			stdin=subprocess.DEVNULL,
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+			start_new_session=True,
+		)
+		return {"stdout": "Restart command launched in detached mode.", "stderr": ""}
+
 	run = subprocess.run(
 		command,
 		shell=True,
@@ -141,6 +157,32 @@ def _run_sequence_commands(commands: list[str]):
 	steps = []
 	for idx, cmd in enumerate(commands, start=1):
 		started_at = now_datetime()
+		is_last = idx == len(commands)
+		disruptive_restart = any(token in cmd for token in ("supervisorctl restart all", "bench restart"))
+
+		if disruptive_restart and is_last:
+			subprocess.Popen(
+				cmd,
+				shell=True,
+				stdin=subprocess.DEVNULL,
+				stdout=subprocess.DEVNULL,
+				stderr=subprocess.DEVNULL,
+				start_new_session=True,
+			)
+			completed_at = now_datetime()
+			steps.append(
+				{
+					"index": idx,
+					"command": cmd,
+					"returncode": 0,
+					"stdout": "Restart command launched in detached mode.",
+					"stderr": "",
+					"started_at": started_at,
+					"completed_at": completed_at,
+				}
+			)
+			break
+
 		run = subprocess.run(
 			cmd,
 			shell=True,
