@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import os
+import re
 import shlex
 import subprocess
 
@@ -28,6 +29,28 @@ def _truthy(v) -> bool:
 	return str(v or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _sanitize_supervisor_targets(raw_targets: str) -> str:
+	"""
+	Validate and safely quote supervisor targets used in shell commands.
+	Allowed token chars: letters, digits, dot, underscore, dash, colon.
+	"""
+	raw = str(raw_targets or "").strip()
+	if not raw:
+		return ""
+
+	# Accept both whitespace- and comma-separated input.
+	tokens = [t for t in re.split(r"[,\s]+", raw) if t]
+	if not tokens:
+		return ""
+
+	allowed = re.compile(r"^[A-Za-z0-9._:-]+$")
+	invalid = [t for t in tokens if not allowed.fullmatch(t)]
+	if invalid:
+		frappe.throw("Invalid supervisor target format. Use service names only (letters, numbers, . _ - :).")
+
+	return " ".join(shlex.quote(t) for t in tokens)
+
+
 def _bench_operations_commands(doc) -> list[str]:
 	bench_path = str(getattr(doc, "bench_path", "") or frappe.conf.get("restart_bench_path") or "/home/frappe/frappe-bench").strip()
 	site = str(getattr(doc, "bench_site", "") or frappe.local.site or "").strip()
@@ -49,6 +72,7 @@ def _bench_operations_commands(doc) -> list[str]:
 	if _truthy(getattr(doc, "bench_op_restart", 0)):
 		targets = str(getattr(doc, "bench_supervisor_targets", "") or "").strip()
 		if targets:
+			safe_targets = _sanitize_supervisor_targets(targets)
 			template = str(frappe.conf.get("restart_supervisor_target_command") or "").strip()
 			if not template:
 				base_restart_cmd = str(frappe.conf.get("restart_supervisor_command") or "").strip()
@@ -58,7 +82,7 @@ def _bench_operations_commands(doc) -> list[str]:
 					template = f"{base_restart_cmd} {{targets}}"
 				else:
 					template = "supervisorctl restart {targets}"
-			restart_cmd = template.format(targets=targets)
+			restart_cmd = template.format(targets=safe_targets)
 			commands.append(f"{base} && {restart_cmd}")
 		else:
 			restart_cmd = str(frappe.conf.get("restart_supervisor_command") or "bench restart").strip()
